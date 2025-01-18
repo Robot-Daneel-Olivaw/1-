@@ -1,0 +1,16 @@
+#define LED_GPIO_NUM 4 // ESP32-CAM的LED通常连接到GPIO4
+
+void setup() {
+  // 初始化LED引脚为输出模式
+  pinMode(LED_GPIO_NUM, OUTPUT);
+}
+
+void loop() {
+  // 点亮LED
+  digitalWrite(LED_GPIO_NUM, HIGH);
+  delay(1000); // 等待1秒
+
+  // 熄灭LED
+  digitalWrite(LED_GPIO_NUM, LOW);
+  delay(1000); // 等待1秒
+}
