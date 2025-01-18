@@ -1,0 +1,17 @@
+void setup() {
+  // 初始化 USB CDC 串口通信，波特率设置为 115200
+  Serial.begin(115200);
+
+  // 等待串口连接（仅用于 USB CDC）
+  while (!Serial) {
+    delay(10);
+  }
+}
+
+void loop() {
+  // 向电脑发送 "hello world"
+  Serial.println("hello world");
+
+  // 延迟 1 秒
+  delay(1000);
+}
