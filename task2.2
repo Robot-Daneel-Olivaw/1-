@@ -1,0 +1,105 @@
+#include <WiFi.h>
+#include <PubSubClient.h>
+
+// WiFi配置
+const char* ssid = "R.Daneel Olivaw"; // 替换为你的WiFi名称
+const char* password = "120531gx"; // 替换为你的WiFi密码
+
+// 阿里云MQTT配置
+const char* mqtt_server = "iot-06z00a4avs6bwre.mqtt.iothub.aliyuncs.com"; // MQTT服务器地址
+const int mqtt_port = 1883; // MQTT端口
+const char* mqtt_clientId = "k28yzhAPY5u.diandeng|securemode=2,signmethod=hmacsha256,timestamp=1737291775240|"; // Client ID
+const char* mqtt_username = "diandeng&k28yzhAPY5u"; // 用户名
+const char* mqtt_password = "b5988ca1061dacf58f46ca10c62e694d4ab3c569b9bf9779e1c0a762f322e56a"; // 密码
+
+// 订阅的Topic
+const char* sub_topic = "/sys/k28yzhAPY5u/diandeng/thing/service/property/set"; // 云端下发指令的Topic
+
+// LED引脚
+const int ledPin = 4; // LED连接在GPIO4
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+// 连接WiFi
+void setup_wifi() {
+  delay(10);
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+// MQTT消息回调函数
+void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println();
+
+  // 解析JSON
+  String message = String((char*)payload);
+  if (message.indexOf("\"led_status\":1") >= 0) {
+    digitalWrite(ledPin, HIGH); // 开灯
+    Serial.println("LED ON");
+  } else if (message.indexOf("\"led_status\":0") >= 0) {
+    digitalWrite(ledPin, LOW); // 关灯
+    Serial.println("LED OFF");
+  }
+}
+
+// 重连MQTT
+void reconnect() {
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    client.setKeepAlive(60); // 设置keepalive为60秒
+    if (client.connect(mqtt_clientId, mqtt_username, mqtt_password)) {
+      Serial.println("connected");
+      client.subscribe(sub_topic); // 订阅Topic
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      delay(5000);
+    }
+  }
+}
+
+void setup() {
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
+
+  Serial.begin(115200);
+
+  // 测试PSRAM
+  if (psramFound()) {
+    Serial.println("PSRAM found and initialized.");
+  } else {
+    Serial.println("PSRAM not found!");
+  }
+
+  setup_wifi();
+  client.setServer(mqtt_server, mqtt_port);
+  client.setCallback(callback);
+}
+
+void loop() {
+  if (!client.connected()) {
+    reconnect();
+  }
+  client.loop();
+}
